@@ -1,0 +1,48 @@
+{
+  "name": "kozzy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lint": "standard",
+    "fix": "standard --fix"
+  },
+  "bin": {
+    "kozzy": "./bin/cmd.js"
+  },
+  "author": {
+    "name": "Sarath C",
+    "url": "http://sarat.io/"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.0",
+    "inherits": "^2.0.4",
+    "minimist": "^1.2.5",
+    "readable-stream": "^3.6.0",
+    "text-table": "^0.2.0"
+  },
+  "devDependencies": {
+    "standard": "^14.3.4",
+    "eslint": "^7.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sharat/kozzy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sharat/kozzy/issues"
+  },
+  "keywords": [
+    "pretty",
+    "pretty output",
+    "kozzy standard",
+    "standard",
+    "standard pretty",
+    "stylish",
+    "stylish for standard",
+    "stylish formatter",
+    "stylish reporter",
+    "stylish standard"
+  ]
+}
