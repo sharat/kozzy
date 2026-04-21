@@ -76,4 +76,33 @@ describe('CompactStream', () => {
     expect(typeof stream.read).toBe('function')
     expect(typeof stream.pipe).toBe('function')
   })
+
+  it('parses ktlint JSON output', async () => {
+    const stream = new CompactStream()
+    const json = JSON.stringify([
+      {
+        file: '/src/main/Foo.kt',
+        errors: [
+          { line: 10, column: 5, ruleId: 'no-consecutive-blank-lines', detail: 'Unexpected blank line' }
+        ]
+      }
+    ])
+    pipeInput(json, stream)
+    await streamToString(stream)
+    expect(stream.exitCode).toBe(1)
+  })
+
+  it('handles JSON with no errors', async () => {
+    const stream = new CompactStream()
+    pipeInput('[]', stream)
+    await streamToString(stream)
+    expect(stream.exitCode).toBe(0)
+  })
+
+  it('falls back to text parsing for non-JSON that starts with {', async () => {
+    const stream = new CompactStream()
+    pipeInput('{ not json\n/src/Foo.kt:1:1: error\n', stream)
+    await streamToString(stream)
+    expect(stream.exitCode).toBe(1)
+  })
 })

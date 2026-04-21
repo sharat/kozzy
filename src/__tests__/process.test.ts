@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { extractLine, buildResultMap, printResults, processLines } from '../process.js'
+import { extractLine, buildResultMap, printResults, processLines, processJson, parseKtlintJson } from '../process.js'
 
 const SAMPLE_LINE = '/src/main/Foo.kt:10:5: Unexpected blank line(s) before "}"'
 const SAMPLE_LINE_2 = '/src/main/Bar.kt:3:1: Missing newline before "}"'
@@ -71,6 +71,76 @@ describe('buildResultMap', () => {
   })
 })
 
+describe('parseKtlintJson', () => {
+  it('parses ktlint JSON reporter output (array format)', () => {
+    const json = JSON.stringify([
+      {
+        file: '/src/main/Foo.kt',
+        errors: [
+          { line: 10, column: 5, ruleId: 'no-consecutive-blank-lines', detail: 'Unexpected blank line(s) before "}"' },
+          { line: 22, column: 1, ruleId: 'no-semi', detail: 'Redundant semicolon' }
+        ]
+      },
+      {
+        file: '/src/main/Bar.kt',
+        errors: [
+          { line: 3, column: 1, ruleId: 'final-newline', detail: 'Missing newline before "}"' }
+        ]
+      }
+    ])
+    
+    const map = parseKtlintJson(json)
+    expect(map.size).toBe(2)
+    expect(map.get('/src/main/Foo.kt')).toHaveLength(2)
+    expect(map.get('/src/main/Bar.kt')).toHaveLength(1)
+    
+    const fooErrors = map.get('/src/main/Foo.kt')!
+    expect(fooErrors[0]).toEqual({
+      path: '/src/main/Foo.kt',
+      line: '10:5',
+      message: 'Unexpected blank line(s) before "}"'
+    })
+  })
+
+  it('parses ktlint JSON reporter output (object format)', () => {
+    const json = JSON.stringify({
+      errors: [
+        {
+          file: '/src/main/Foo.kt',
+          errors: [
+            { line: 10, column: 5, ruleId: 'no-consecutive-blank-lines', detail: 'Unexpected blank line' }
+          ]
+        }
+      ]
+    })
+    
+    const map = parseKtlintJson(json)
+    expect(map.size).toBe(1)
+    expect(map.get('/src/main/Foo.kt')).toHaveLength(1)
+  })
+
+  it('returns empty map for invalid JSON', () => {
+    const map = parseKtlintJson('not json at all')
+    expect(map.size).toBe(0)
+  })
+
+  it('returns empty map for empty JSON array', () => {
+    const map = parseKtlintJson('[]')
+    expect(map.size).toBe(0)
+  })
+
+  it('returns empty map for JSON object without errors', () => {
+    const map = parseKtlintJson('{}')
+    expect(map.size).toBe(0)
+  })
+
+  it('handles JSON with no errors field', () => {
+    const json = JSON.stringify({ someOtherField: 'value' })
+    const map = parseKtlintJson(json)
+    expect(map.size).toBe(0)
+  })
+})
+
 describe('printResults', () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>
 
@@ -126,5 +196,33 @@ describe('processLines', () => {
     const map = processLines(['', SAMPLE_LINE, 'BUILD FAILED', SAMPLE_LINE_SAME_FILE])
     expect(map.size).toBe(1)
     expect(map.get('/src/main/Foo.kt')).toHaveLength(2)
+  })
+})
+
+describe('processJson', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('returns an empty map for invalid JSON', () => {
+    const map = processJson('not json')
+    expect(map.size).toBe(0)
+  })
+
+  it('returns a populated map for valid ktlint JSON', () => {
+    const json = JSON.stringify([
+      {
+        file: '/src/main/Foo.kt',
+        errors: [
+          { line: 10, column: 5, ruleId: 'no-consecutive-blank-lines', detail: 'Unexpected blank line' }
+        ]
+      }
+    ])
+    const map = processJson(json)
+    expect(map.size).toBe(1)
   })
 })
