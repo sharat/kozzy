@@ -48,4 +48,33 @@ npm audit
 
 ## CI/CD
 
-Check `.github/workflows/` for CI configuration. The `prepublishOnly` script runs build + test before publishing.
+### Workflows
+| Workflow | File | Purpose |
+|----------|------|---------|
+| CI | `.github/workflows/ci.yml` | Lint, test (Node 22, 24), coverage |
+| Publish | `.github/workflows/publish.yml` | Publish to npm on git tag push |
+| Dependabot | `.github/dependabot.yml` | Weekly Friday 03:30 UTC dependency updates |
+
+### Release Process
+
+**Automated (Dependabot):**
+- Dependabot creates PRs every Friday at 03:30 UTC (09:00 IST)
+- After PRs are merged, version is auto-bumped and tagged
+- Tag push triggers `publish.yml` → publishes to npm
+
+**Manual:**
+```bash
+# Bump version, create tag, push
+npm version patch   # or minor/major
+git push origin main --follow-tags
+```
+- Tag push (e.g., `v2.1.0`) triggers `.github/workflows/publish.yml`
+- Workflow: test → build → publish to npm with provenance
+
+### Requirements
+- `NPM_AUTH_TOKEN` secret configured in GitHub (for npm publishing)
+
+## Notes
+- `prepublishOnly` script runs build + test before publishing
+- Node 24 is the primary version; Node 22 is also tested
+- No major version bumps via Dependabot (configured to skip)
